@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#12345a">
+  <title>PredicSalud AI | Soporte a la Decisión Clínica</title>
+  <style>
+    :root {
+      --navy: #12345a; --blue: #1e5b91; --blue-2: #287bb8;
+      --sky: #eaf4fb; --ink: #172b3d; --muted: #687b8c;
+      --line: #e2eaf0; --surface: #ffffff; --bg: #f3f7fa;
+      --green: #16845b; --green-bg: #e8f6ef; --amber: #a96508;
+      --amber-bg: #fff4df; --red: #c13c45; --red-bg: #fdecee;
+      --shadow: 0 12px 35px rgba(20, 53, 83, .08); --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .small { font-size: .83rem; }
+    .eyebrow { color: var(--blue-2); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .app-shell { min-height: 100vh; }
+    .topbar { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px clamp(16px, 4vw, 48px); color: white; background: linear-gradient(110deg, #102d4d, #1d527f); box-shadow: 0 5px 20px rgba(15, 44, 72, .16); }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: rgba(255,255,255,.14); font-size: 1.3rem; }
+    .brand-name { font-weight: 800; letter-spacing: -.02em; font-size: 1.05rem; }
+    .brand-sub { color: #c9dced; font-size: .72rem; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .role-chip { color: #e9f3fb; border: 1px solid rgba(255,255,255,.25); padding: 7px 11px; border-radius: 999px; font-size: .8rem; }
+    .nav-btn { border: 0; background: transparent; color: #e8f2fa; padding: 9px 11px; border-radius: 9px; }
+    .nav-btn:hover, .nav-btn.active { background: rgba(255,255,255,.14); }
+    .main { width: min(1240px, calc(100% - 40px)); margin: 30px auto 56px; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(1.55rem, 3vw, 2rem); line-height: 1.15; margin-bottom: 7px; letter-spacing: -.035em; }
+    h2 { font-size: 1.12rem; margin-bottom: 14px; }
+    h3 { font-size: .98rem; margin-bottom: 8px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+    .grid { display: grid; gap: 18px; }
+    .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 20px; }
+    .kpi { padding: 18px 20px; }
+    .kpi-label { color: var(--muted); font-size: .82rem; font-weight: 650; }
+    .kpi-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -.04em; margin: 5px 0 2px; }
+    .kpi-note { font-size: .76rem; color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 800; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8fbfd; }
+    .patient-name { font-weight: 750; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; font-size: .72rem; font-weight: 850; letter-spacing: .035em; }
+    .critical { color: var(--red); background: var(--red-bg); }
+    .high { color: var(--amber); background: var(--amber-bg); }
+    .stable { color: var(--green); background: var(--green-bg); }
+    .btn { border: 0; border-radius: 10px; padding: 10px 15px; font-weight: 750; transition: .18s ease; }
+    .btn-primary { color: white; background: var(--blue); }
+    .btn-primary:hover { background: #164a77; transform: translateY(-1px); }
+    .btn-secondary { color: var(--blue); background: var(--sky); }
+    .btn-secondary:hover { background: #dceefa; }
+    .btn-ghost { color: var(--muted); background: transparent; }
+    .btn-danger { color: var(--red); background: var(--red-bg); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; }
+    .two-col { grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: start; }
+    .three-col { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 15px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: .82rem; color: #40576b; font-weight: 750; }
+    .field input, .field select, .field textarea { width: 100%; min-width: 0; border: 1px solid #d6e1e9; background: #fff; border-radius: 10px; padding: 11px 12px; color: var(--ink); outline: none; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue-2); box-shadow: 0 0 0 3px rgba(40,123,184,.12); }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .input-unit { position: relative; }
+    .input-unit input { padding-right: 62px; }
+    .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .76rem; pointer-events: none; }
+    .timeline { display: grid; gap: 0; }
+    .timeline-item { position: relative; padding: 0 0 20px 25px; border-left: 2px solid #dce9f2; margin-left: 6px; }
+    .timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .timeline-item:before { content: ""; position: absolute; left: -7px; top: 3px; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; background: var(--blue-2); box-shadow: 0 0 0 2px #c9e0f0; }
+    .timeline-date { font-size: .75rem; color: var(--muted); font-weight: 750; }
+    .timeline-title { font-weight: 800; margin: 3px 0; }
+    .metric { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .metric:last-child { border-bottom: 0; }
+    .metric strong { font-size: .95rem; }
+    .risk-panel { display: flex; align-items: center; gap: 24px; padding: 20px; border-radius: 14px; background: linear-gradient(120deg, #f1f7fc, #fff); border: 1px solid #dceaf4; }
+    .risk-number { font-size: clamp(2.7rem, 6vw, 4rem); font-weight: 850; letter-spacing: -.06em; color: var(--red); line-height: 1; }
+    .risk-number small { font-size: 1rem; letter-spacing: 0; }
+    .progress { height: 9px; border-radius: 99px; overflow: hidden; background: #e9eff4; }
+    .progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4c9cbe, #d58b35); }
+    .contribution { margin: 14px 0; }
+    .contribution-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: .84rem; font-weight: 700; }
+    .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 15%, #d9edf9 0, transparent 32%), linear-gradient(135deg, #edf4f8, #f8fbfd); }
+    .login-card { width: min(460px, 100%); padding: clamp(26px, 5vw, 42px); border: 1px solid #e0eaf1; border-radius: 22px; background: white; box-shadow: 0 22px 65px rgba(22,57,87,.13); }
+    .login-brand { text-align: center; margin-bottom: 28px; }
+    .login-logo { width: 62px; height: 62px; display: grid; place-items: center; margin: 0 auto 16px; border-radius: 19px; background: linear-gradient(145deg, #16466f, #2e83b9); color: white; font-size: 1.8rem; box-shadow: 0 10px 20px rgba(30,91,145,.2); }
+    .login-brand h1 { color: var(--navy); font-size: 1.85rem; margin-bottom: 5px; }
+    .login-brand p { color: var(--muted); font-size: .88rem; margin: 0; }
+    .login-form { display: grid; gap: 16px; }
+    .login-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 19px; }
+    .text-link { color: var(--blue); text-decoration: none; font-size: .82rem; font-weight: 750; }
+    .text-link:hover { text-decoration: underline; }
+    .notice { padding: 12px 14px; border-radius: 10px; background: #f0f6fa; color: #526b7e; font-size: .78rem; }
+    .feedback-options { display: flex; gap: 10px; flex-wrap: wrap; }
+    .feedback-options label { cursor: pointer; }
+    .feedback-options input { position: absolute; opacity: 0; }
+    .feedback-options span { display: inline-block; border: 1px solid var(--line); padding: 10px 14px; border-radius: 10px; font-weight: 750; }
+    .feedback-options input:checked + span { border-color: var(--blue); background: var(--sky); color: var(--blue); }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 18px; border-bottom: 2px solid var(--navy); margin-bottom: 20px; }
+    .report-section { margin: 22px 0; }
+    .report-section h2 { color: var(--navy); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .report-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .report-cell { padding: 12px; background: #f7fafc; border-radius: 10px; }
+    .report-cell span { display: block; color: var(--muted); font-size: .75rem; }
+    .report-cell strong { display: block; margin-top: 3px; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; max-width: min(420px, calc(100% - 40px)); padding: 13px 17px; border-radius: 12px; background: #173c5e; color: white; box-shadow: var(--shadow); }
+    .footer-note { margin-top: 24px; color: var(--muted); font-size: .75rem; text-align: center; }
+    @media (max-width: 850px) { .kpis { grid-template-columns: repeat(2,1fr); } .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) {
+      .main { width: min(100% - 24px, 1240px); margin: 22px auto 40px; }
+      .topbar { align-items: flex-start; padding: 12px; flex-wrap: wrap; }
+      .top-actions { width: 100%; overflow-x: auto; }
+      .role-chip { display: none; }
+      .page-head { align-items: flex-start; flex-direction: column; }
+      .card { padding: 17px; }
+      .kpis { gap: 10px; }
+      .kpi { padding: 14px; }
+      .kpi-value { font-size: 1.55rem; }
+      .form-grid, .three-col, .report-grid { grid-template-columns: 1fr; }
+      .risk-panel { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .report-header { flex-direction: column; }
+      .login-foot { align-items: flex-start; flex-direction: column; }
+    }
+    @media print {
+      body { background: white; font-size: 11pt; }
+      .topbar, .no-print, .footer-note { display: none !important; }
+      .main { width: 100%; margin: 0; }
+      .card { box-shadow: none; border: 0; padding: 0; }
+      #screen-report { display: block !important; }
+      .report-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <!-- P01: Inicio de sesión -->
+  <section id="screen-login" class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo" aria-hidden="true">✚</div>
+        <h1>PredicSalud AI</h1>
+        <p>AI-Powered Clinical Decision Support</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <div class="field">
+          <label for="login-email">Email Institucional</label>
+          <input id="login-email" type="email" placeholder="nombre@institucion.org" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" type="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required minlength="4">
+        </div>
+        <button class="btn btn-primary" type="submit">Ingresar al sistema →</button>
+      </form>
+      <div class="login-foot">
+        <a class="text-link" href="#" id="forgot-link">¿Olvidó su contraseña?</a>
+        <span class="small muted">Acceso institucional seguro</span>
+      </div>
+      <p class="footer-note">Prototipo demostrativo · No gestiona credenciales reales</p>
+    </div>
+  </section>
+
+  <div id="app-shell" class="app-shell hidden">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✚</div>
+        <div><div class="brand-name">PredicSalud AI</div><div class="brand-sub">Clinical Decision Support</div></div>
+      </div>
+      <div class="top-actions no-print">
+        <span class="role-chip">● Médico · Dra. Ana Martínez</span>
+        <button class="nav-btn active" data-nav="dashboard">Dashboard</button>
+        <button class="nav-btn" data-nav="history">Historia clínica</button>
+        <button class="nav-btn" data-nav="xai">Evaluación IA</button>
+        <button class="nav-btn" data-nav="report">Reporte</button>
+        <button class="nav-btn" id="logout-btn" title="Cerrar sesión">Salir ↗</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- P02: Dashboard -->
+      <section id="screen-dashboard" class="screen">
+        <div class="page-head">
+          <div><div class="eyebrow">Centro de monitoreo clínico</div><h1>Panel principal</h1><p class="muted">Resumen de pacientes y priorización de atención.</p></div>
+          <button class="btn btn-primary" id="new-evaluation">＋ Nueva evaluación</button>
+        </div>
+        <div class="grid kpis">
+          <article class="card kpi"><div class="kpi-label">Pacientes monitoreados</div><div class="kpi-value">128</div><div class="kpi-note">En seguimiento activo</div></article>
+          <article class="card kpi"><div class="kpi-label">Riesgo crítico</div><div class="kpi-value" style="color:var(--red)">08</div><div class="kpi-note">Requieren revisión prioritaria</div></article>
+          <article class="card kpi"><div class="kpi-label">Riesgo alto</div><div class="kpi-value" style="color:var(--amber)">17</div><div class="kpi-note">Seguimiento estrecho</div></article>
+          <article class="card kpi"><div class="kpi-label">Estables</div><div class="kpi-value" style="color:var(--green)">103</div><div class="kpi-note">Sin alertas actuales</div></article>
+        </div>
+        <article class="card">
+          <div class="page-head" style="margin-bottom:8px"><div><h2>Pacientes priorizados</h2><p class="muted small">Datos ficticios para demostración del flujo de trabajo.</p></div><span class="badge stable">● Sistema operativo</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Paciente</th><th>MRN</th><th>Edad</th><th>Última evaluación</th><th>Nivel de riesgo</th><th>Acciones</th></tr></thead>
+              <tbody>
+                <tr><td><span class="patient-name">María González</span><br><span class="small muted">Femenino</span></td><td>PS-004821</td><td>67 años</td><td>Hoy · 09:42</td><td><span class="badge critical">● CRÍTICO</span></td><td><button class="btn btn-secondary btn-sm" data-patient="maria">Ver detalle</button></td></tr>
+                <tr><td><span class="patient-name">Carlos Rodríguez</span><br><span class="small muted">Masculino</span></td><td>PS-003176</td><td>54 años</td><td>Hoy · 08:15</td><td><span class="badge high">● ALTO</span></td><td><button class="btn btn-secondary" data-patient="carlos">Ver detalle</button></td></tr>
+                <tr><td><span class="patient-name">Lucía Fernández</span><br><span class="small muted">Femenino</span></td><td>PS-005092</td><td>42 años</td><td>Ayer · 16:30</td><td><span class="badge stable">● ESTABLE</span></td><td><button class="btn btn-secondary" data-patient="lucia">Ver detalle</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- P03: Historia clínica y signos vitales -->
+      <section id="screen-history" class="screen hidden">
+        <div class="page-head">
+          <div><div class="eyebrow">Expediente del paciente</div><h1>Historia clínica y triage</h1><p class="muted">Revisión de antecedentes y captura de parámetros actuales.</p></div>
+          <button class="btn btn-secondary no-print" data-go="dashboard">← Volver al Dashboard</button>
+        </div>
+        <div class="grid two-col">
+          <div class="grid">
+            <article class="card">
+              <div class="eyebrow">Paciente seleccionado</div><h2 id="history-patient-name">María González</h2>
+              <div class="grid three-col">
+                <div><span class="small muted">MRN</span><br><strong id="history-mrn">PS-004821</strong></div>
+                <div><span class="small muted">Edad</span><br><strong id="history-age">67 años</strong></div>
+                <div><span class="small muted">Sexo</span><br><strong id="history-sex">Femenino</strong></div>
+              </div>
+            </article>
+            <article class="card">
+              <h2>Antecedentes y cronología</h2>
+              <div class="timeline">
+                <div class="timeline-item"><div class="timeline-date">12 nov 2026 · Consulta</div><div class="timeline-title">Hipertensión esencial (CIE-10: I10)</div><div class="small muted">Control de presión arterial. Seguimiento por medicina interna.</div></div>
+                <div class="timeline-item"><div class="timeline-date">28 oct 2026 · Laboratorio</div><div class="timeline-title">Glucosa elevada</div><div class="small muted">Glucosa en ayunas: 168 mg/dL. Se recomienda correlación clínica.</div></div>
+                <div class="timeline-item"><div class="timeline-date">03 sep 2026 · Medicación</div><div class="timeline-title">Tratamiento activo registrado</div><div class="small muted">Losartán 50 mg · Metformina 500 mg. Verificar dosis y adherencia en expediente.</div></div>
+                <div class="timeline-item"><div class="timeline-date">2024 · Antecedente</div><div class="timeline-title">Diabetes mellitus tipo 2 (CIE-10: E11.9)</div><div class="small muted">Antecedente consignado en historia clínica.</div></div>
+              </div>
+            </article>
+          </div>
+          <article class="card">
+            <div class="eyebrow">Registro actual</div><h2>Signos vitales</h2>
+            <p class="small muted">Ingrese valores medidos. Todos los campos son obligatorios en esta simulación.</p>
+            <form id="vitals-form" class="form-grid">
+              <div class="field"><label for="systolic">Presión sistólica</label><div class="input-unit"><input id="systolic" type="number" min="50" max="260" value="168" required><span class="unit">mmHg</span></div></div>
+              <div class="field"><label for="diastolic">Presión diastólica</label><div class="input-unit"><input id="diastolic" type="number" min="30" max="160" value="102" required><span class="unit">mmHg</span></div></div>
+              <div class="field"><label for="heart-rate">Frecuencia cardíaca</label><div class="input-unit"><input id="heart-rate" type="number" min="20" max="250" value="108" required><span class="unit">bpm</span></div></div>
+              <div class="field"><label for="spo2">Saturación de oxígeno</label><div class="input-unit"><input id="spo2" type="number" min="50" max="100" value="93" required><span class="unit">%</span></div></div>
+              <div class="field"><label for="glucose">Glucosa</label><div class="input-unit"><input id="glucose" type="number" min="20" max="700" value="218" required><span class="unit">mg/dL</span></div></div>
+              <div class="field"><label for="temperature">Temperatura corporal</label><div class="input-unit"><input id="temperature" type="number" min="30" max="45" step=".1" value="37.4" required><span class="unit">°C</span></div></div>
+              <div class="field" style="grid-column:1/-1"><label for="clinical-notes">Observaciones clínicas (opcional)</label><textarea id="clinical-notes" placeholder="Síntomas referidos, contexto de medición..."></textarea></div>
+              <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Calcular evaluación →</button><button class="btn btn-ghost" type="reset">Restablecer</button></div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <!-- P04: Resultado IA / XAI -->
+      <section id="screen-xai" class="screen hidden">
+        <div class="page-head">
+          <div><div class="eyebrow">Motor de análisis · Explicabilidad</div><h1>Resultado de evaluación IA</h1><p class="muted">Estimación demostrativa basada en los valores ingresados.</p></div>
+          <button class="btn btn-secondary no-print" data-go="history">← Editar signos vitales</button>
+        </div>
+        <div class="grid two-col">
+          <div class="grid">
+            <article class="card">
+              <div class="eyebrow">Predicción del modelo</div>
+              <div class="risk-panel">
+                <div><div class="risk-number" id="risk-score">86<small>%</small></div><div class="muted small">Puntaje ilustrativo de riesgo</div></div>
+                <div><span class="badge critical" id="risk-category">● CRÍTICO</span><h2 style="margin:9px 0 4px">Revisión clínica prioritaria</h2><p class="small muted" id="risk-summary">Los parámetros ingresados activan señales de alerta en esta simulación.</p></div>
+              </div>
+              <div class="notice" style="margin-top:16px">La puntuación y la clasificación son ficticias y no proceden de un modelo clínico validado. No deben utilizarse para diagnóstico, tratamiento ni priorización asistencial real.</div>
+            </article>
+            <article class="card">
+              <h2>Explicabilidad XAI · Aporte ilustrativo</h2>
+              <p class="small muted">Contribución relativa de variables al puntaje simulado (no representa causalidad).</p>
+              <div id="contribution-list">
+                <div class="contribution"><div class="contribution-head"><span>Glucosa</span><strong>+35%</strong></div><div class="progress"><span style="width:35%"></span></div></div>
+                <div class="contribution"><div class="contribution-head"><span>Presión arterial</span><strong>+28%</strong></div><div class="progress"><span style="width:28%"></span></div></div>
+                <div class="contribution"><div class="contribution-head"><span>SpO₂</span><strong>+17%</strong></div><div class="progress"><span style="width:17%"></span></div></div>
+                <div class="contribution"><div class="contribution-head"><span>Frecuencia cardíaca</span><strong>+12%</strong></div><div class="progress"><span style="width:12%"></span></div></div>
+                <div class="contribution"><div class="contribution-head"><span>Temperatura</span><strong>+8%</strong></div><div class="progress"><span style="width:8%"></span></div></div>
+              </div>
+            </article>
+          </div>
+          <article class="card">
+            <div class="eyebrow">Feedback loop</div><h2>Retroalimentación médica</h2>
+            <p class="small muted">Registre su revisión profesional del resultado simulado.</p>
+            <form id="feedback-form">
+              <div class="field" style="margin-bottom:16px"><label>Validación médica</label>
+                <div class="feedback-options">
+                  <label><input type="radio" name="validation" value="Confirmada" required><span>✓ Confirmar IA</span></label>
+                  <label><input type="radio" name="validation" value="Rechazada" required><span>✕ Rechazar IA</span></label>
+                </div>
+              </div>
+              <div class="field"><label for="justification">Justificación médica (obligatoria)</label><textarea id="justification" required minlength="8" placeholder="Explique brevemente los fundamentos de su validación..."></textarea></div>
+              <div class="notice" style="margin:14px 0">La decisión clínica corresponde al profesional tratante. La IA es un apoyo y no sustituye el juicio clínico.</div>
+              <button class="btn btn-primary" type="submit">Guardar validación y generar reporte →</button>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <!-- P05: Vista previa del reporte -->
+      <section id="screen-report" class="screen hidden">
+        <div class="page-head no-print">
+          <div><div class="eyebrow">Documento clínico</div><h1>Vista previa del reporte</h1><p class="muted">Resumen de la evaluación y retroalimentación médica.</p></div>
+          <div class="actions"><button class="btn btn-primary" id="print-report">⎙ Imprimir / Guardar como PDF</button><button class="btn btn-secondary" data-go="dashboard">Volver al Dashboard</button></div>
+        </div>
+        <article class="card">
+          <div class="report-header">
+            <div><div class="eyebrow">PredicSalud AI</div><h1 style="margin:4px 0">Reporte de evaluación clínica</h1><div class="muted small">AI-Powered Clinical Decision Support · Documento demostrativo</div></div>
+            <div class="small muted">Fecha: <strong id="report-date"></strong><br>Profesional: Dra. Ana Martínez</div>
+          </div>
+          <div class="report-section">
+            <h2>1. Identificación del paciente</h2>
+            <div class="report-grid">
+              <div class="report-cell"><span>Paciente</span><strong id="report-name">María González</strong></div>
+              <div class="report-cell"><span>MRN</span><strong id="report-mrn">PS-004821</strong></div>
+              <div class="report-cell"><span>Edad</span><strong id="report-age">67 años</strong></div>
+            </div>
+          </div>
+          <div class="report-section">
+            <h2>2. Signos vitales registrados</h2>
+            <div class="report-grid">
+              <div class="report-cell"><span>Presión arterial</span><strong id="report-bp">168/102 mmHg</strong></div>
+              <div class="report-cell"><span>Frecuencia cardíaca</span><strong id="report-hr">108 bpm</strong></div>
+              <div class="report-cell"><span>SpO₂</span><strong id="report-spo2">93%</strong></div>
+              <div class="report-cell"><span>Glucosa</span><strong id="report-glucose">218 mg/dL</strong></div>
+              <div class="report-cell"><span>Temperatura</span><strong id="report-temp">37.4 °C</strong></div>
+              <div class="report-cell"><span>Observaciones</span><strong id="report-notes">Sin observaciones</strong></div>
+            </div>
+          </div>
+          <div class="report-section">
+            <h2>3. Resultado de la evaluación IA</h2>
+            <p><strong id="report-risk">86% · CRÍTICO</strong></p>
+            <p class="small muted">Resultado ilustrativo de una regla de demostración; no es una predicción médica validada ni una recomendación asistencial.</p>
+          </div>
+          <div class="report-section">
+            <h2>4. Validación médica</h2>
+            <p><strong>Decisión:</strong> <span id="report-validation">Pendiente</span></p>
+            <p><strong>Justificación:</strong> <span id="report-justification">No registrada</span></p>
+          </div>
+          <div class="report-section">
+            <h2>5. Plan de bienestar · Sección demostrativa</h2>
+            <div class="grid three-col">
+              <div class="report-cell"><strong>Prevención</strong><p class="small muted" style="margin:5px 0 0">Mantener seguimiento con el equipo tratante y revisar factores de riesgo en consulta.</p></div>
+              <div class="report-cell"><strong>Medicación</strong><p class="small muted" style="margin:5px 0 0">Verificar el horario y la adherencia al tratamiento prescrito con el profesional responsable. No modificar dosis por este reporte.</p></div>
+              <div class="report-cell"><strong>Progreso</strong><p class="small muted" style="margin:5px 0 0">Registrar mediciones según el plan acordado y documentar evolución en la historia clínica.</p></div>
+            </div>
+          </div>
+          <div class="notice">Aviso: prototipo de interfaz con datos ficticios y cálculo no clínico. No constituye un dispositivo médico ni debe utilizarse en atención real.</div>
+          <p class="footer-note">PredicSalud AI · Fin del reporte · Uso demostrativo</p>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script>
+    // Estado local del prototipo. No se envían datos a ningún servidor.
+    const patients = {
+      maria: { name: "María González", mrn: "PS-004821", age: "67 años", sex: "Femenino" },
+      carlos: { name: "Carlos Rodríguez", mrn: "PS-003176", age: "54 años", sex: "Masculino" },
+      lucia: { name: "Lucía Fernández", mrn: "PS-005092", age: "42 años", sex: "Femenino" }
+    };
+    let selectedPatient = patients.maria;
+    let latestVitals = { systolic: 168, diastolic: 102, hr: 108, spo2: 93, glucose: 218, temp: 37.4, notes: "" };
+    let risk = { score: 86, category: "CRÍTICO" };
+    let validation = "Pendiente";
+    let justification = "";
+
+    const $ = (id) => document.getElementById(id);
+    function toast(message) {
+      const el = $("toast"); el.textContent = message; el.classList.remove("hidden");
+      window.clearTimeout(toast.timer); toast.timer = window.setTimeout(() => el.classList.add("hidden"), 3200);
+    }
+    function showScreen(name) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+      $("screen-" + name).classList.remove("hidden");
+      document.querySelectorAll("[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function updatePatient(patientKey) {
+      selectedPatient = patients[patientKey] || patients.maria;
+      $("history-patient-name").textContent = selectedPatient.name;
+      $("history-mrn").textContent = selectedPatient.mrn;
+      $("history-age").textContent = selectedPatient.age;
+      $("history-sex").textContent = selectedPatient.sex;
+      showScreen("history");
+    }
+    function collectVitals() {
+      return {
+        systolic: Number($("systolic").value), diastolic: Number($("diastolic").value),
+        hr: Number($("heart-rate").value), spo2: Number($("spo2").value),
+        glucose: Number($("glucose").value), temp: Number($("temperature").value),
+        notes: $("clinical-notes").value.trim()
+      };
+    }
+    // Puntaje de demostración basado en umbrales arbitrarios; NO es un algoritmo clínico.
+    function calculateDemoRisk(v) {
+      let score = 10;
+      if (v.glucose >= 200) score += 30; else if (v.glucose >= 140) score += 18;
+      if (v.systolic >= 160 || v.diastolic >= 100) score += 25; else if (v.systolic >= 140 || v.diastolic >= 90) score += 14;
+      if (v.spo2 < 94) score += 18; else if (v.spo2 < 96) score += 8;
+      if (v.hr > 100 || v.hr < 50) score += 10;
+      if (v.temp >= 38 || v.temp < 35.5) score += 7;
+      score = Math.min(99, score);
+      return { score, category: score >= 70 ? "CRÍTICO" : score >= 40 ? "ALTO" : "ESTABLE" };
+    }
+    function renderRisk() {
+      $("risk-score").innerHTML = `${risk.score}<small>%</small>`;
+      $("risk-category").textContent = "● " + risk.category;
+      $("risk-category").className = "badge " + (risk.category === "CRÍTICO" ? "critical" : risk.category === "ALTO" ? "high" : "stable");
+      $("risk-number")?.classList.toggle("critical", risk.category === "CRÍTICO");
+      $("risk-summary").textContent = risk.category === "CRÍTICO"
+        ? "El puntaje de demostración supera el umbral crítico configurado."
+        : risk.category === "ALTO" ? "El puntaje de demostración se encuentra en el rango alto."
+        : "El puntaje de demostración se encuentra en el rango estable.";
+      const vals = [
+        ["Glucosa", latestVitals.glucose >= 200 ? 35 : latestVitals.glucose >= 140 ? 22 : 10],
+        ["Presión arterial", latestVitals.systolic >= 160 || latestVitals.diastolic >= 100 ? 28 : latestVitals.systolic >= 140 || latestVitals.diastolic >= 90 ? 18 : 8],
+        ["SpO₂", latestVitals.spo2 < 94 ? 17 : latestVitals.spo2 < 96 ? 10 : 5],
+        ["Frecuencia cardíaca", latestVitals.hr > 100 || latestVitals.hr < 50 ? 12 : 5],
+        ["Temperatura", latestVitals.temp >= 38 || latestVitals.temp < 35.5 ? 8 : 3]
+      ];
+      const total = vals.reduce((a, b) => a + b[1], 0);
+      $("contribution-list").innerHTML = vals.map(([label, value]) => {
+        const pct = Math.round(value / total * 100);
+        return `<div class="contribution"><div class="contribution-head"><span>${label}</span><strong>+${pct}%</strong></div><div class="progress"><span style="width:${pct}%"></span></div></div>`;
+      }).join("");
+    }
+    function populateReport() {
+      $("report-date").textContent = new Date().toLocaleString("es-ES");
+      $("report-name").textContent = selectedPatient.name;
+      $("report-mrn").textContent = selectedPatient.mrn;
+      $("report-age").textContent = selectedPatient.age;
+      $("report-bp").textContent = `${latestVitals.systolic}/${latestVitals.diastolic} mmHg`;
+      $("report-hr").textContent = `${latestVitals.hr} bpm`;
+      $("report-spo2").textContent = `${latestVitals.spo2}%`;
+      $("report-glucose").textContent = `${latestVitals.glucose} mg/dL`;
+      $("report-temp").textContent = `${latestVitals.temp} °C`;
+      $("report-notes").textContent = latestVitals.notes || "Sin observaciones";
+      $("report-risk").textContent = `${risk.score}% · ${risk.category}`;
+      $("report-validation").textContent = validation;
+      $("report-justification").textContent = justification || "No registrada";
+    }
+
+    $("login-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      // Inicio de sesión simulado: no valida identidad ni autentica usuarios.
+      $("screen-login").classList.add("hidden");
+      $("app-shell").classList.remove("hidden");
+      showScreen("dashboard");
+      toast("Sesión de demostración iniciada.");
+    });
+    $("forgot-link").addEventListener("click", (event) => { event.preventDefault(); toast("Prototipo: contacte al administrador institucional para recuperar el acceso."); });
+    $("logout-btn").addEventListener("click", () => {
+      $("app-shell").classList.add("hidden"); $("screen-login").classList.remove("hidden");
+      $("login-password").value = ""; window.scrollTo(0, 0);
+    });
+    document.querySelectorAll("[data-nav]").forEach(btn => btn.addEventListener("click", () => {
+      const dest = btn.dataset.nav;
+      if (dest === "history" && !selectedPatient) selectedPatient = patients.maria;
+      if (dest === "report") populateReport();
+      showScreen(dest);
+    }));
+    document.querySelectorAll("[data-go]").forEach(btn => btn.addEventListener("click", () => showScreen(btn.dataset.go)));
+    document.querySelectorAll("[data-patient]").forEach(btn => btn.addEventListener("click", () => updatePatient(btn.dataset.patient)));
+    $("new-evaluation").addEventListener("click", () => updatePatient("maria"));
+    $("vitals-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!$("vitals-form").reportValidity()) return;
+      latestVitals = collectVitals();
+      risk = calculateDemoRisk(latestVitals);
+      renderRisk(); showScreen("xai");
+    });
+    $("feedback-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const selected = document.querySelector('input[name="validation"]:checked');
+      if (!selected || $("justification").value.trim().length < 8) {
+        toast("Seleccione una validación e ingrese una justificación de al menos 8 caracteres."); return;
+      }
+      validation = selected.value; justification = $("justification").value.trim();
+      populateReport(); showScreen("report"); toast("Validación guardada en esta sesión de demostración.");
+    });
+    $("print-report").addEventListener("click", () => window.print());
+  </script>
+</body>
+</html>
